@@ -4,6 +4,11 @@ rgvar = {
     location   = "japanwest"
     managed_by = "devopsinsiders"
   }
+  rg2 = {
+    rg_name    = "rg-qa"
+    location   = "japanwest"
+    managed_by = "githubactions"
+  }
 }
 vnetvar = {
   vnet1 = {
