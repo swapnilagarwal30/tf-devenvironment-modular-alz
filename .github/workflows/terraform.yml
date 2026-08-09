@@ -1,23 +1,70 @@
-name: Terraform Azure Workflow
+name: Terraform Azure CI/CD
 
 on:
+
+  # ---------------------------------------------
+  # Feature branch push
+  # ---------------------------------------------
+  push:
+    branches:
+      - "**"
+      - "!main"
+
+  # ---------------------------------------------
+  # Pull Request to main
+  # ---------------------------------------------
+  pull_request:
+    branches:
+      - main
+
+  # ---------------------------------------------
+  # Manual execution
+  # ---------------------------------------------
   workflow_dispatch:
 
+
+# ---------------------------------------------
+# Environment Variables
+# ---------------------------------------------
+env:
+  TF_VERSION: "1.9.8"
+  TF_WORKING_DIR: "parent_module/dev"
+
+
+# ---------------------------------------------
+# GitHub Permissions
+# ---------------------------------------------
 permissions:
   contents: read
+  pull-requests: read
+
 
 jobs:
-  terraform:
-    name: Terraform
+
+  # ==========================================================
+  # TERRAFORM PLAN
+  # Runs on feature branch push and Pull Request
+  # ==========================================================
+  terraform-plan:
+
+    name: Terraform Plan
     runs-on: ubuntu-latest
+
+    # Do NOT run Plan job after merge to main
+    if: github.ref != 'refs/heads/main'
 
     steps:
 
-      # 1. Checkout repository
+      # ------------------------------------------------------
+      # 1. Checkout Repository
+      # ------------------------------------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
+
+      # ------------------------------------------------------
       # 2. Azure Login
+      # ------------------------------------------------------
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -26,31 +73,142 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+
+      # ------------------------------------------------------
       # 3. Verify Azure Login
+      # ------------------------------------------------------
       - name: Verify Azure Login
         run: |
-          echo "Azure Login Successful!"
+          echo "Azure Login Successful"
           az account show
 
+
+      # ------------------------------------------------------
       # 4. Setup Terraform
+      # ------------------------------------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
 
-      # 5. Terraform Version
-      - name: Terraform Version
-        run: terraform version
 
+      # ------------------------------------------------------
+      # 5. Terraform Format Check
+      # ------------------------------------------------------
+      - name: Terraform Format Check
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -recursive
+
+
+      # ------------------------------------------------------
       # 6. Terraform Init
+      # ------------------------------------------------------
       - name: Terraform Init
-        working-directory: parent_module/dev
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
 
+
+      # ------------------------------------------------------
       # 7. Terraform Validate
+      # ------------------------------------------------------
       - name: Terraform Validate
-        working-directory: parent_module/dev
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform validate
 
+
+      # ------------------------------------------------------
       # 8. Terraform Plan
+      # ------------------------------------------------------
       - name: Terraform Plan
-        working-directory: parent_module/dev
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan
+
+
+  # ==========================================================
+  # TERRAFORM APPLY
+  # Runs ONLY after code is merged/pushed to main
+  # ==========================================================
+  terraform-apply:
+
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+
+      # ------------------------------------------------------
+      # 1. Checkout Repository
+      # ------------------------------------------------------
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+
+      # ------------------------------------------------------
+      # 2. Azure Login
+      # ------------------------------------------------------
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+
+      # ------------------------------------------------------
+      # 3. Verify Azure Login
+      # ------------------------------------------------------
+      - name: Verify Azure Login
+        run: |
+          echo "Azure Login Successful"
+          az account show
+
+
+      # ------------------------------------------------------
+      # 4. Setup Terraform
+      # ------------------------------------------------------
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+
+      # ------------------------------------------------------
+      # 5. Terraform Format Check
+      # ------------------------------------------------------
+      - name: Terraform Format Check
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check -recursive
+
+
+      # ------------------------------------------------------
+      # 6. Terraform Init
+      # ------------------------------------------------------
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+
+      # ------------------------------------------------------
+      # 7. Terraform Validate
+      # ------------------------------------------------------
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+
+      # ------------------------------------------------------
+      # 8. Terraform Plan
+      # ------------------------------------------------------
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan
+
+
+      # ------------------------------------------------------
+      # 9. Terraform Apply
+      # ------------------------------------------------------
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -auto-approve
