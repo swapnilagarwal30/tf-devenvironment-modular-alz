@@ -9,6 +9,11 @@ rgvar = {
     location   = "japanwest"
     managed_by = "githubactions"
   }
+  rg3 = {
+    rg_name    = "rg-githubactions"
+    location   = "japanwest"
+    managed_by = "githubactionsyaml"
+  }
 }
 vnetvar = {
   vnet1 = {
