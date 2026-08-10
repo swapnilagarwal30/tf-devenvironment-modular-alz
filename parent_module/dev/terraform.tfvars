@@ -172,5 +172,27 @@ bastionvar = {
   bastion1 = {
     bastion_loc = "japanwest"
     bastion_rgn = "rg-develop"
+subnet_name = "AzureBastionSubnet"
+    vnet_name = "vnet-dev"
+    rg_name = "rg-develop"
+pip_name = "bastion-pip"
+  }
+}
+subansgvar = {
+  subnet1 = {
+    subnet_name = "frontend-subnet"
+    vnet_name   = "vnet-dev"
+    rg_name     = "rg-develop"
+
+    nsg_name    = "frontend-nsg"
+    nsg_rgn     = "rg-develop"
+  }
+  subnet2 = {
+    subnet_name = "backend-subnet"
+    vnet_name   = "vnet-dev"
+    rg_name     = "rg-develop"
+
+    nsg_name    = "backend-nsg"
+    nsg_rgn     = "rg-develop"
   }
 }
